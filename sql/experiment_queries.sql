@@ -1,20 +1,29 @@
--- A/B testing SQL examples
+-- A/B testing SQL examples for the Marketing A/B dataset.
 
 SELECT
   variant,
-  COUNT(*) AS visitors,
-  ROUND(100.0 * AVG(clicked), 2) AS ctr,
+  COUNT(*) AS users,
   ROUND(100.0 * AVG(converted), 2) AS conversion_rate,
-  ROUND(SUM(revenue), 2) AS revenue,
-  ROUND(AVG(revenue), 2) AS revenue_per_visitor
+  ROUND(AVG(total_ads), 2) AS avg_ads_seen,
+  ROUND(MIN(total_ads), 2) AS min_ads_seen,
+  ROUND(MAX(total_ads), 2) AS max_ads_seen
 FROM experiment
 GROUP BY variant;
 
 SELECT
-  traffic_source,
+  most_ads_day,
   variant,
-  COUNT(*) AS visitors,
+  COUNT(*) AS users,
   ROUND(100.0 * AVG(converted), 2) AS conversion_rate
 FROM experiment
-GROUP BY traffic_source, variant
-ORDER BY traffic_source, variant;
+GROUP BY most_ads_day, variant
+ORDER BY most_ads_day, variant;
+
+SELECT
+  most_ads_hour,
+  variant,
+  COUNT(*) AS users,
+  ROUND(100.0 * AVG(converted), 2) AS conversion_rate
+FROM experiment
+GROUP BY most_ads_hour, variant
+ORDER BY most_ads_hour, variant;

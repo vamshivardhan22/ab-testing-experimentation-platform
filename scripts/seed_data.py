@@ -5,39 +5,32 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = ROOT / "data"
-OUTPUT = DATA_DIR / "landing_page_experiment.csv"
+OUTPUT = ROOT / "data" / "marketing_ab.csv"
 
 
-def build_experiment(seed=99, visitors=50000):
+def build_sample(seed=99, rows=25000):
     rng = np.random.default_rng(seed)
-    DATA_DIR.mkdir(exist_ok=True)
-    variants = rng.choice(["Old Landing Page", "New Landing Page"], size=visitors, p=[0.5, 0.5])
-    base_ctr = np.where(variants == "Old Landing Page", 0.118, 0.132)
-    base_conversion = np.where(variants == "Old Landing Page", 0.048, 0.056)
-    clicked = rng.random(visitors) < base_ctr
-    converted = clicked & (rng.random(visitors) < base_conversion / base_ctr)
-    revenue = np.where(converted, rng.gamma(3.0, 34.0, visitors), 0)
-
-    data = pd.DataFrame(
+    variant = rng.choice(["Ad Campaign", "Public Service Announcement"], rows, p=[0.88, 0.12])
+    total_ads = rng.negative_binomial(2, 0.08, rows) + 1
+    base = np.where(variant == "Ad Campaign", 0.027, 0.018)
+    ad_effect = np.minimum(total_ads, 80) * 0.00008
+    converted = rng.random(rows) < np.clip(base + ad_effect, 0, 0.18)
+    return pd.DataFrame(
         {
-            "visitor_id": [f"VIS-{i:06d}" for i in range(1, visitors + 1)],
-            "visit_date": pd.Timestamp("2026-01-01") + pd.to_timedelta(rng.integers(0, 45, visitors), unit="D"),
-            "variant": variants,
-            "clicked": clicked.astype(int),
+            "user_id": rng.choice(np.arange(1_000_000, 9_999_999), rows, replace=False),
+            "variant": variant,
             "converted": converted.astype(int),
-            "revenue": revenue.round(2),
-            "device": rng.choice(["Desktop", "Mobile", "Tablet"], visitors, p=[0.45, 0.44, 0.11]),
-            "traffic_source": rng.choice(["Paid Search", "Organic", "Social", "Email"], visitors, p=[0.32, 0.29, 0.24, 0.15]),
+            "total_ads": total_ads,
+            "most_ads_day": rng.choice(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], rows),
+            "most_ads_hour": rng.integers(0, 24, rows),
         }
     )
-    return data.sort_values("visit_date")
 
 
 def main():
-    experiment = build_experiment()
-    experiment.to_csv(OUTPUT, index=False)
-    print(f"Wrote {len(experiment):,} experiment rows to {OUTPUT}")
+    OUTPUT.parent.mkdir(exist_ok=True)
+    build_sample().to_csv(OUTPUT, index=False)
+    print(f"Wrote fallback A/B testing sample to {OUTPUT}")
 
 
 if __name__ == "__main__":
